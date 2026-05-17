@@ -37,3 +37,27 @@ Stage Summary:
 - Role-based sidebar filtering implemented
 - All data persisted in localStorage (offline-first)
 - Build passes cleanly with all 21 static pages generated
+
+---
+Task ID: 2
+Agent: Main Agent + full-stack-developer subagent
+Task: Fix deployment issue — push Lab LIS to live Vercel site
+
+Work Log:
+- Discovered local project was not connected to the remote GitHub repo correctly
+- Remote had 3 additional commits with major changes (pharmacy rebuild, accounts, doctor restructure)
+- Local changes conflicted with remote — resolved by resetting to remote and reapplying changes
+- Read remote codebase: uses baga_session auth, has proper lib/store.ts and lib/types.ts, roleMenus in layout.tsx
+- Lab role in sidebar only had ['Dashboard', 'Laboratory'] — no sub-menus
+- Used full-stack-developer subagent to integrate LIS into the existing codebase
+- Created lab-store.ts with 12 tests, demo data, auto analysis, localStorage persistence
+- Modified layout.tsx to add collapsible sub-menu for lab role (8 children)
+- Created 7 new lab sub-pages (dashboard replaced, 7 new directories)
+- Dashboard cleanup: replaced pending lab/pharmacy cards, removed ultrasound from department status
+- Committed and pushed to GitHub successfully
+
+Stage Summary:
+- Build: PASS (26 routes, zero errors)
+- Push: SUCCESS to origin/main
+- Vercel will auto-deploy from this push
+- Lab Technician will now see collapsible "Laboratory" menu with 8 sub-pages

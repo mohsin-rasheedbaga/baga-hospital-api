@@ -61,3 +61,27 @@ Stage Summary:
 - Push: SUCCESS to origin/main
 - Vercel will auto-deploy from this push
 - Lab Technician will now see collapsible "Laboratory" menu with 8 sub-pages
+
+---
+Task ID: 3
+Agent: Main
+Task: Implement Doctor Discharge Enhancement + X-Ray Upload/Viewer
+
+Work Log:
+- Read and analyzed current doctor/page.tsx, xray/page.tsx, store.ts, types.ts
+- Updated XRayOrder type in types.ts to include xrayImage field
+- Added getBillsByPatient import and Bill type import to doctor page
+- Implemented comprehensive discharge modal with bill balance check
+- Added discharge medicine prescription, lab recommendations, notes/advice sections
+- Generated printable discharge slip HTML with hospital header, patient info, diagnosis, medicines, lab tests, advice
+- Added X-ray image upload functionality (jpg/png, max 5MB) using FileReader API
+- Implemented full-screen X-ray image viewer with zoom, rotate, brightness/contrast, invert controls
+- Added mouse wheel zoom and drag-to-pan features
+- Resolved merge conflicts with remote lab-sync improvements
+- Built successfully, committed and pushed to trigger Vercel deployment
+
+Stage Summary:
+- 4 files modified: types.ts, doctor/page.tsx, xray/page.tsx (348 insertions, 5 deletions)
+- Doctor discharge now blocks if patient has unpaid bills
+- X-ray technicians can upload images and viewers have professional medical imaging controls
+- Deployment: git push to main triggered Vercel auto-deploy

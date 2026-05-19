@@ -103,3 +103,23 @@ Stage Summary:
 - Sidebar link added for Lab role
 - Pushed to GitHub, Vercel will auto-deploy
 
+---
+Task ID: 2-4
+Agent: Main Agent + Subagent
+Task: Add Expenses/Purchase entry pages for Lab & Pharmacy
+
+Work Log:
+- Found Lab already had data layer (LabExpense type + CRUD) but NO UI page
+- Found Pharmacy had NO expense tracking at all
+- Created /lab/expenses/page.tsx with full CRUD, filters, stats
+- Added PharmacyExpense data layer to store.ts (get/add/update/delete functions)
+- Created /pharmacy/expenses/page.tsx with full CRUD + supplier field
+- Added "Expenses" sidebar links for both Lab and Pharmacy menus
+- Build succeeded, pushed to GitHub
+
+Stage Summary:
+- Lab Expenses page: teal theme, categories (Reagents, Consumables, Equipment, etc.)
+- Pharmacy Expenses page: amber theme, categories (Medicine Purchase, Consumables, etc.), includes Supplier field
+- Both pages have: Add/Edit/Delete modals, date filters, category filters, search, stats cards
+- Both sidebar menus updated with Expenses links
+

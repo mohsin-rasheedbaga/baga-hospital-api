@@ -85,3 +85,21 @@ Stage Summary:
 - Doctor discharge now blocks if patient has unpaid bills
 - X-ray technicians can upload images and viewers have professional medical imaging controls
 - Deployment: git push to main triggered Vercel auto-deploy
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix Lab Statement page crash (reported 3+ times across sessions)
+
+Work Log:
+- Investigated: /lab/statement/page.tsx did NOT EXIST - file was never created
+- Also found Lab sidebar menu had no "My Statement" link
+- Created comprehensive Lab Statement page at /src/app/(dashboard)/lab/statement/page.tsx
+- Added "My Statement" sidebar link for Lab role in layout.tsx
+- Resolved merge conflict (remote also had a version of the page)
+- Build succeeded, pushed to GitHub
+
+Stage Summary:
+- Lab Statement page now exists and builds successfully
+- Sidebar link added for Lab role
+- Pushed to GitHub, Vercel will auto-deploy
+

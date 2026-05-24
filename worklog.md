@@ -123,3 +123,36 @@ Stage Summary:
 - Both pages have: Add/Edit/Delete modals, date filters, category filters, search, stats cards
 - Both sidebar menus updated with Expenses links
 
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix login authentication - connect Electron app to admin panel API
+
+Work Log:
+- Analyzed the problem: login page only checked localStorage demo users, not admin panel API
+- Downloaded and extracted existing app.asar from GitHub release (v2.2.2)
+- Found admin panel API URLs: license check and auth login endpoints
+- Discovered loginUrl was defined in main.js but NEVER called
+- Root cause: login page uses getUsers() from localStorage, admin panel credentials (asadhygh_xghy / BAGA@4xz0nr#) are not stored locally
+- Admin panel API is behind Vercel authentication (deployment preview URL)
+- Modified login/page.tsx: added admin panel API login via local proxy (/api/auth/login), falls back to local users
+- Modified login/page.tsx: hide Demo Credentials section when license is active
+- Modified login/page.tsx: hide Hospital Settings button when license is active
+- Modified login/page.tsx: fetch license info from /api/license-info endpoint to show correct hospital name, address, phone, license no
+- Rebuilt electron/main.js with: /api/auth/login proxy, /api/license-info endpoint, 0.0.0.0 binding, 3-day trial, removed offline fallback
+- Updated license.html: 3-day trial, v2.3.0
+- Created preload.js with IPC bridge
+- Fixed root project page.tsx JSX syntax error (semicolon in onClick handler)
+- Built Next.js static export: 38 pages, 433 files
+- Packaged app.asar: 3.47 MB, 481 files
+
+Stage Summary:
+- app.asar built at /home/z/my-project/download/app.asar
+- Login now calls /api/auth/login proxy which forwards to admin panel API
+- If admin panel is unreachable, falls back to local demo users
+- Demo section and Hospital Settings hidden when license is active
+- Hospital info and license no come from admin panel via /api/license-info
+- Network sharing on 0.0.0.0:18765
+- Trial period changed from 30 to 3 days
+- IMPORTANT: Admin panel API URL behind Vercel auth may need to be updated

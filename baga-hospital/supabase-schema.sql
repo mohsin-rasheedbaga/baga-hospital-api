@@ -1,5 +1,23 @@
 -- BAGA Hospital Management System - Database Schema
 
+-- 0. licenses (hospital licenses - must be created FIRST)
+CREATE TABLE IF NOT EXISTS licenses (
+  id BIGSERIAL PRIMARY KEY,
+  hospital_name TEXT NOT NULL,
+  license_key TEXT UNIQUE NOT NULL,
+  license_duration TEXT DEFAULT '1month',
+  status TEXT DEFAULT 'active',
+  features JSONB DEFAULT '[]',
+  address TEXT,
+  phone TEXT,
+  email TEXT,
+  check_frequency_days INTEGER DEFAULT 1,
+  expiry_date DATE,
+  machine_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- 1. hospital_users (login credentials per hospital)
 CREATE TABLE IF NOT EXISTS hospital_users (
   id BIGSERIAL PRIMARY KEY,

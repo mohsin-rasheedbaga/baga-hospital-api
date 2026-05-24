@@ -49,6 +49,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Fetch hospital admin credentials (first active user for this hospital)
+    const { data: adminUser, error: userError } = await supabase
+      .from('hospital_users')
+      .select('username, password, role')
+      .eq('hospital_id', license.id)
+      .eq('is_active', true)
+      .limit(1)
+      .single();
+
     return NextResponse.json({
       valid: true,
       hospital_name: license.hospital_name,
@@ -59,6 +68,9 @@ export async function POST(request: NextRequest) {
       check_frequency_days: license.check_frequency_days,
       address: license.address,
       phone: license.phone,
+      // Return credentials so Electron app can store them for login proxy
+      username: adminUser?.username || null,
+      password: adminUser?.password || null,
     });
   } catch (error) {
     console.error('License check error:', error);

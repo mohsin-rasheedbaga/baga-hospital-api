@@ -14,3 +14,29 @@ export function getSupabase(): SupabaseClient {
   }
   return _supabase;
 }
+
+export async function createHospitalUser(
+  hospitalId: number,
+  username: string,
+  password: string,
+  hospitalName: string,
+  role: string = 'admin'
+): Promise<any> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('hospital_users')
+    .insert({
+      username,
+      password,
+      full_name: hospitalName,
+      role,
+      hospital_id: hospitalId,
+      hospital_name: hospitalName,
+      is_active: true,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}

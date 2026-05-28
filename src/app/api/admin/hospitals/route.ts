@@ -114,7 +114,11 @@ export async function POST(request: NextRequest) {
     const duration = license_duration || '1_month';
     const expiryDate = calculateExpiry(duration);
 
-    // Create license
+    // Auto-generate admin credentials FIRST (needed for NOT NULL columns)
+    const username = generateUsername(hospital_name);
+    const password = generatePassword(hospital_name);
+
+    // Create license (include all NOT NULL fields: name, hospital_name, license_key, username, password)
     const { data: license, error: licenseError } = await supabase
       .from('licenses')
       .insert({
@@ -123,6 +127,8 @@ export async function POST(request: NextRequest) {
         address: (address || '').trim(),
         phone: (phone || '').trim(),
         license_key: licenseKey,
+        username: username,
+        password: password,
         status: 'active',
         license_duration: duration,
         expiry_date: expiryDate,
@@ -138,10 +144,6 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-
-    // Auto-generate admin credentials
-    const username = generateUsername(hospital_name);
-    const password = generatePassword(hospital_name);
 
     // Create admin user for this hospital
     const { error: userError } = await supabase

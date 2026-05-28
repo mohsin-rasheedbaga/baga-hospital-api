@@ -64,8 +64,9 @@ export default function SettingsPage() {
 
   useEffect(() => {
     // Check if running inside Electron
-    const electronApi = (window as Record<string, unknown>).electronAPI;
-    if (electronApi && typeof (electronApi as Record<string, unknown>).getLicenseData === 'function') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const electronApi = (window as any).electronAPI;
+    if (electronApi && typeof electronApi.getLicenseData === 'function') {
       setIsElectron(true);
     }
 
@@ -122,7 +123,8 @@ export default function SettingsPage() {
   }
 
   async function handleOpenLicenseWindow() {
-    const electronApi = (window as Record<string, unknown>).electronAPI as Record<string, () => Promise<unknown>> | undefined;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const electronApi = (window as any).electronAPI as Record<string, () => Promise<unknown>> | undefined;
     if (electronApi && typeof electronApi.openLicenseWindow === 'function') {
       await electronApi.openLicenseWindow();
     } else {

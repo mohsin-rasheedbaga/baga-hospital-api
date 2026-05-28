@@ -118,6 +118,7 @@ export async function POST(request: NextRequest) {
     const { data: license, error: licenseError } = await supabase
       .from('licenses')
       .insert({
+        name: hospital_name.trim(),
         hospital_name: hospital_name.trim(),
         address: (address || '').trim(),
         phone: (phone || '').trim(),

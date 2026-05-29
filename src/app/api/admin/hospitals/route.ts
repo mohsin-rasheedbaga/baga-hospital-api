@@ -49,6 +49,27 @@ function generatePassword(hospitalName: string): string {
   return `${prefix}${digits}`;
 }
 
+// Map license_type to features array
+function getFeaturesForLicenseType(licenseType: string): string[] {
+  const map: Record<string, string[]> = {
+    hospital: ['all'],
+    clinic: ['clinic', 'reception', 'doctor', 'pharmacy', 'lab'],
+    pharmacy: ['pharmacy'],
+    lab: ['lab'],
+  };
+  return map[licenseType] || ['all'];
+}
+
+// Derive license_type from features array (backward compatibility)
+function getLicenseTypeFromFeatures(features: string[]): string {
+  if (!features || features.length === 0) return 'hospital';
+  if (features.includes('all')) return 'hospital';
+  if (features.length === 1 && features[0] === 'pharmacy') return 'pharmacy';
+  if (features.length === 1 && features[0] === 'lab') return 'lab';
+  if (features.includes('clinic')) return 'clinic';
+  return 'hospital';
+}
+
 // GET /api/admin/hospitals - List all hospitals with licenses
 export async function GET() {
   try {
@@ -101,6 +122,7 @@ export async function GET() {
       license_duration: l.license_duration,
       expiry_date: l.expiry_date,
       features: l.features,
+      license_type: getLicenseTypeFromFeatures(l.features as string[]),
       created_at: l.created_at,
       user_count: userCounts[(l.id as number)] || 0,
       admin_username: adminCredentials[(l.id as number)]?.username || null,
@@ -118,7 +140,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { hospital_name, address, phone, license_duration, features, charges, notes } = body;
+    const { hospital_name, address, phone, license_duration, features, charges, notes, license_type } = body;
 
     if (!hospital_name) {
       return NextResponse.json(
@@ -131,6 +153,9 @@ export async function POST(request: NextRequest) {
     const licenseKey = generateLicenseKey();
     const duration = license_duration || '1_month';
     const expiryDate = calculateExpiry(duration);
+    const validLicenseTypes = ['hospital', 'clinic', 'pharmacy', 'lab'];
+    const resolvedLicenseType = validLicenseTypes.includes(license_type) ? license_type : 'hospital';
+    const resolvedFeatures = getFeaturesForLicenseType(resolvedLicenseType);
 
     // Auto-generate admin credentials FIRST (needed for NOT NULL columns)
     const username = generateUsername(hospital_name);
@@ -150,7 +175,7 @@ export async function POST(request: NextRequest) {
         status: 'active',
         license_duration: duration,
         expiry_date: expiryDate,
-        features: features || ['all'],
+        features: resolvedFeatures,
         check_frequency_days: 1,
         charges: charges || null,
         notes: notes || null,
@@ -194,9 +219,35 @@ export async function POST(request: NextRequest) {
           status: license.status,
           charges: license.charges,
           notes: license.notes,
+          license_type: resolvedLicenseType,
         },
         credentials: null,
+        reception_credentials: null,
       });
+    }
+
+    // For hospital and clinic types, also create a reception user
+    let receptionCredentials: { username: string; password: string } | null = null;
+    if (resolvedLicenseType === 'hospital' || resolvedLicenseType === 'clinic') {
+      const receptionUsername = generateUsername(`reception_${hospital_name}`);
+      const receptionPassword = generatePassword(`reception_${hospital_name}`);
+      const { error: receptionError } = await supabase
+        .from('hospital_users')
+        .insert({
+          username: receptionUsername,
+          password: receptionPassword,
+          full_name: 'Reception',
+          role: 'reception',
+          hospital_id: license.id,
+          hospital_name: hospital_name.trim(),
+          license_key: licenseKey,
+          is_active: true,
+        });
+      if (!receptionError) {
+        receptionCredentials = { username: receptionUsername, password: receptionPassword };
+      } else {
+        console.error('Failed to create reception user:', receptionError.message);
+      }
     }
 
     return NextResponse.json({
@@ -210,11 +261,13 @@ export async function POST(request: NextRequest) {
         status: license.status,
         charges: license.charges,
         notes: license.notes,
+        license_type: resolvedLicenseType,
       },
       credentials: {
         username,
         password,
       },
+      reception_credentials: receptionCredentials,
     });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Internal server error';

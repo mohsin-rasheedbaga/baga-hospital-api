@@ -49,7 +49,7 @@ export async function POST(
     // Get hospital info
     const { data: license } = await supabase
       .from('licenses')
-      .select('hospital_name, license_key')
+      .select('hospital_name, license_key, features')
       .eq('id', id)
       .single();
 
@@ -57,6 +57,30 @@ export async function POST(
       return NextResponse.json(
         { success: false, error: 'Hospital not found' },
         { status: 404 }
+      );
+    }
+
+    // Derive license_type from features and validate role
+    const LICENSE_TYPE_ROLES: Record<string, string[]> = {
+      hospital: ['admin', 'doctor', 'reception', 'lab', 'pharmacy', 'hr', 'xray', 'ultrasound', 'accounts', 'staff'],
+      clinic: ['admin', 'doctor', 'reception', 'pharmacy', 'lab'],
+      pharmacy: ['admin', 'pharmacy'],
+      lab: ['admin', 'lab'],
+    };
+
+    const licenseFeatures = (license.features || []) as string[];
+    let licenseType = 'hospital';
+    if (!licenseFeatures.includes('all')) {
+      if (licenseFeatures.length === 1 && licenseFeatures[0] === 'pharmacy') licenseType = 'pharmacy';
+      else if (licenseFeatures.length === 1 && licenseFeatures[0] === 'lab') licenseType = 'lab';
+      else if (licenseFeatures.includes('clinic')) licenseType = 'clinic';
+    }
+
+    const allowedRoles = LICENSE_TYPE_ROLES[licenseType] || LICENSE_TYPE_ROLES.hospital;
+    if (!allowedRoles.includes(role)) {
+      return NextResponse.json(
+        { success: false, error: `Role "${role}" is not allowed for license type "${licenseType}". Allowed roles: ${allowedRoles.join(', ')}` },
+        { status: 400 }
       );
     }
 

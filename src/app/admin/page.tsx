@@ -12,6 +12,7 @@ interface Hospital {
   license_duration: string;
   expiry_date: string | null;
   features: string[];
+  license_type?: string;
   created_at: string;
   user_count: number;
   admin_username: string | null;
@@ -31,6 +32,35 @@ interface User {
 
 type FilterType = 'all' | 'active' | 'inactive';
 
+const ROLES_BY_LICENSE_TYPE: Record<string, string[]> = {
+  hospital: ['admin', 'doctor', 'reception', 'lab', 'pharmacy', 'hr', 'xray', 'ultrasound', 'accounts'],
+  clinic: ['admin', 'doctor', 'reception', 'pharmacy', 'lab'],
+  pharmacy: ['admin', 'pharmacy'],
+  lab: ['admin', 'lab'],
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'Admin', doctor: 'Doctor', reception: 'Reception', lab: 'Lab',
+  pharmacy: 'Pharmacy', hr: 'HR', xray: 'X-Ray', ultrasound: 'Ultrasound',
+  accounts: 'Accounts', staff: 'Staff',
+};
+
+const LICENSE_TYPE_CONFIG: Record<string, { label: string; description: string; color: string; bg: string }> = {
+  hospital: { label: 'Hospital', description: 'Full system: all departments', color: '#1e40af', bg: '#dbeafe' },
+  clinic: { label: 'Clinic', description: 'Reception, doctor, pharmacy, lab', color: '#065f46', bg: '#d1fae5' },
+  pharmacy: { label: 'Pharmacy', description: 'Standalone: medicine, sales, prescriptions', color: '#92400e', bg: '#fef3c7' },
+  lab: { label: 'Laboratory', description: 'Standalone: tests, reports, inventory', color: '#581c87', bg: '#f3e8ff' },
+};
+
+function getTypeFromFeatures(features: string[]): string {
+  if (!features || features.length === 0) return 'hospital';
+  if (features.includes('all')) return 'hospital';
+  if (features.length === 1 && features[0] === 'pharmacy') return 'pharmacy';
+  if (features.length === 1 && features[0] === 'lab') return 'lab';
+  if (features.includes('clinic')) return 'clinic';
+  return 'hospital';
+}
+
 export default function AdminPage() {
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +77,7 @@ export default function AdminPage() {
     license_duration: string;
     charges: string | null;
     notes: string | null;
+    reception_credentials?: { username: string; password: string } | null;
   } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -61,6 +92,7 @@ export default function AdminPage() {
     address: '',
     phone: '',
     license_duration: '1_month',
+    license_type: 'hospital',
     charges: '',
     notes: '',
   });
@@ -194,7 +226,7 @@ export default function AdminPage() {
       if (data.success) {
         showToast('Hospital added successfully!', 'success');
         setShowAddForm(false);
-        setFormData({ hospital_name: '', address: '', phone: '', license_duration: '1_month', charges: '', notes: '' });
+        setFormData({ hospital_name: '', address: '', phone: '', license_duration: '1_month', license_type: 'hospital', charges: '', notes: '' });
         setNewCredentials({
           username: data.credentials?.username || '',
           password: data.credentials?.password || '',
@@ -204,6 +236,7 @@ export default function AdminPage() {
           license_duration: data.license?.license_duration || '1_month',
           charges: data.license?.charges || null,
           notes: data.license?.notes || null,
+          reception_credentials: data.reception_credentials || null,
         });
         fetchHospitals();
       } else {
@@ -321,7 +354,10 @@ export default function AdminPage() {
       if (data.success) {
         showToast(`User "${data.user.username}" created`, 'success');
         setShowAddUserForm(false);
-        setUserForm({ username: '', password: '', full_name: '', role: 'reception' });
+        const defaultRole = selectedHospital
+          ? (ROLES_BY_LICENSE_TYPE[selectedHospital.license_type || getTypeFromFeatures(selectedHospital.features)] || ROLES_BY_LICENSE_TYPE.hospital)[0]
+          : 'reception';
+        setUserForm({ username: '', password: '', full_name: '', role: defaultRole });
         // Refresh users
         const usersRes = await fetch(`/api/admin/hospitals/${selectedHospital.id}/users`);
         const usersData = await usersRes.json();
@@ -671,6 +707,41 @@ export default function AdminPage() {
                   <CopyBtn text={newCredentials.password} field="new-pass" />
                 </div>
               </div>
+              {newCredentials.reception_credentials && (
+                <>
+                  <div style={{
+                    borderTop: '1px solid #e2e8f0',
+                    paddingTop: 12,
+                    marginTop: 4,
+                  }}>
+                    <span style={{ fontSize: 12, color: '#7c3aed', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Reception Login Credentials
+                    </span>
+                  </div>
+                  <div style={{ marginBottom: 12 }}>
+                    <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Login ID
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <p style={{ fontSize: 15, fontWeight: 700, color: '#0f766e', fontFamily: 'monospace' }}>
+                        {newCredentials.reception_credentials.username}
+                      </p>
+                      <CopyBtn text={newCredentials.reception_credentials.username} field="new-reception-user" />
+                    </div>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Password
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <p style={{ fontSize: 15, fontWeight: 700, color: '#b45309', fontFamily: 'monospace' }}>
+                        {newCredentials.reception_credentials.password}
+                      </p>
+                      <CopyBtn text={newCredentials.reception_credentials.password} field="new-reception-pass" />
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
             <button
               onClick={() => setNewCredentials(null)}
@@ -976,6 +1047,43 @@ export default function AdminPage() {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: '#475569', marginBottom: 4 }}>
+                    License Type
+                  </label>
+                  <select
+                    value={formData.license_type}
+                    onChange={(e) => setFormData({ ...formData, license_type: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: 8,
+                      fontSize: 14,
+                      outline: 'none',
+                      background: 'white',
+                    }}
+                  >
+                    <option value="hospital">Hospital</option>
+                    <option value="clinic">Clinic</option>
+                    <option value="pharmacy">Pharmacy</option>
+                    <option value="lab">Laboratory</option>
+                  </select>
+                </div>
+                {formData.license_type !== 'hospital' && LICENSE_TYPE_CONFIG[formData.license_type] && (
+                  <div style={{
+                    gridColumn: '1 / -1',
+                    padding: '10px 14px',
+                    borderRadius: 8,
+                    background: LICENSE_TYPE_CONFIG[formData.license_type].bg,
+                    border: `1px solid ${LICENSE_TYPE_CONFIG[formData.license_type].color}22`,
+                    fontSize: 13,
+                    color: LICENSE_TYPE_CONFIG[formData.license_type].color,
+                    fontWeight: 500,
+                  }}>
+                    {LICENSE_TYPE_CONFIG[formData.license_type].description}
+                  </div>
+                )}
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: '#475569', marginBottom: 4 }}>
                     License Duration
                   </label>
                   <select
@@ -1278,7 +1386,13 @@ export default function AdminPage() {
                 Users ({hospitalUsers.length})
               </h4>
               <button
-                onClick={() => setShowAddUserForm(!showAddUserForm)}
+                onClick={() => {
+                  const defaultRole = selectedHospital
+                    ? (ROLES_BY_LICENSE_TYPE[selectedHospital.license_type || getTypeFromFeatures(selectedHospital.features)] || ROLES_BY_LICENSE_TYPE.hospital)[0]
+                    : 'reception';
+                  setUserForm(prev => ({ ...prev, role: defaultRole }));
+                  setShowAddUserForm(!showAddUserForm);
+                }}
                 style={{
                   padding: '6px 14px',
                   background: '#2563eb',
@@ -1377,12 +1491,12 @@ export default function AdminPage() {
                         background: 'white',
                       }}
                     >
-                      <option value="admin">Admin</option>
-                      <option value="doctor">Doctor</option>
-                      <option value="reception">Reception</option>
-                      <option value="lab">Lab</option>
-                      <option value="pharmacy">Pharmacy</option>
-                      <option value="hr">HR</option>
+                      {(selectedHospital
+                      ? (ROLES_BY_LICENSE_TYPE[selectedHospital.license_type || getTypeFromFeatures(selectedHospital.features)] || ROLES_BY_LICENSE_TYPE.hospital)
+                      : ROLES_BY_LICENSE_TYPE.hospital
+                    ).map(r => (
+                      <option key={r} value={r}>{ROLE_LABELS[r] || r}</option>
+                    ))}
                     </select>
                   </div>
                 </div>
@@ -1462,7 +1576,7 @@ export default function AdminPage() {
                             background: '#f1f5f9',
                             color: '#475569',
                           }}>
-                            {user.role}
+                            {ROLE_LABELS[user.role] || user.role}
                           </span>
                         </td>
                         <td style={{ padding: '10px 12px' }}>
@@ -1590,6 +1704,22 @@ export default function AdminPage() {
                         }}>
                           {hospital.status === 'active' ? 'Active' : 'Inactive'}
                         </span>
+                        {(() => {
+                          const resolvedType = hospital.license_type || getTypeFromFeatures(hospital.features);
+                          const config = LICENSE_TYPE_CONFIG[resolvedType] || LICENSE_TYPE_CONFIG.hospital;
+                          return (
+                            <span style={{
+                              padding: '2px 8px',
+                              borderRadius: 4,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              background: config.bg,
+                              color: config.color,
+                            }}>
+                              {config.label}
+                            </span>
+                          );
+                        })()}
                         {isExpired && (
                           <span style={{
                             padding: '2px 8px',

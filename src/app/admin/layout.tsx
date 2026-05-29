@@ -7,6 +7,41 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Check for auto-login first
+    const remembered = localStorage.getItem('baga_admin_remember');
+    if (remembered) {
+      try {
+        const { username, password } = JSON.parse(remembered);
+        if (username && password) {
+          // Attempt auto-login
+          fetch('/api/admin/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password }),
+          })
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                localStorage.setItem('baga_admin_token', data.token);
+                setIsAuthenticated(true);
+              } else {
+                // Auto-login failed, clear remembered credentials
+                localStorage.removeItem('baga_admin_remember');
+              }
+              setLoading(false);
+            })
+            .catch(() => {
+              localStorage.removeItem('baga_admin_remember');
+              setLoading(false);
+            });
+          return;
+        }
+      } catch {
+        localStorage.removeItem('baga_admin_remember');
+      }
+    }
+
+    // Fallback: check for existing token
     const token = localStorage.getItem('baga_admin_token');
     if (token) {
       setIsAuthenticated(true);
@@ -19,9 +54,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <div style={{
         minHeight: '100vh',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         background: 'linear-gradient(135deg, #0f172a, #1e293b)',
+        gap: 16,
       }}>
         <div style={{
           width: 40, height: 40,
@@ -30,6 +67,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           borderRadius: '50%',
           animation: 'spin 0.8s linear infinite',
         }} />
+        <span style={{ color: '#64748b', fontSize: 13 }}>Signing in automatically...</span>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
@@ -45,8 +83,26 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 function AdminLogin({ onLogin }: { onLogin: () => void }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Pre-fill from remembered credentials
+  useEffect(() => {
+    const remembered = localStorage.getItem('baga_admin_remember');
+    if (remembered) {
+      try {
+        const { username: u, password: p } = JSON.parse(remembered);
+        if (u && p) {
+          setUsername(u);
+          setPassword(p);
+          setRememberMe(true);
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +120,11 @@ function AdminLogin({ onLogin }: { onLogin: () => void }) {
 
       if (data.success) {
         localStorage.setItem('baga_admin_token', data.token);
+        if (rememberMe) {
+          localStorage.setItem('baga_admin_remember', JSON.stringify({ username, password }));
+        } else {
+          localStorage.removeItem('baga_admin_remember');
+        }
         onLogin();
       } else {
         setError(data.error || 'Login failed');
@@ -162,7 +223,7 @@ function AdminLogin({ onLogin }: { onLogin: () => void }) {
             />
           </div>
 
-          <div style={{ marginBottom: 24 }}>
+          <div style={{ marginBottom: 16 }}>
             <label style={{
               display: 'block',
               fontSize: 13,
@@ -189,6 +250,37 @@ function AdminLogin({ onLogin }: { onLogin: () => void }) {
                 outline: 'none',
               }}
             />
+          </div>
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            marginBottom: 24,
+          }}>
+            <input
+              type="checkbox"
+              id="rememberMe"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              style={{
+                width: 16,
+                height: 16,
+                accentColor: '#10b981',
+                cursor: 'pointer',
+              }}
+            />
+            <label
+              htmlFor="rememberMe"
+              style={{
+                fontSize: 13,
+                color: '#94a3b8',
+                cursor: 'pointer',
+                userSelect: 'none',
+              }}
+            >
+              Remember me (auto-login next time)
+            </label>
           </div>
 
           <button

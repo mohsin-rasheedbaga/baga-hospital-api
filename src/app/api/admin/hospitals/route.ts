@@ -75,6 +75,22 @@ export async function GET() {
       }
     }
 
+    // Get admin user credentials for each hospital
+    const { data: adminUsers } = await supabase
+      .from('hospital_users')
+      .select('hospital_id, username, password')
+      .eq('role', 'admin');
+
+    const adminCredentials: Record<number, { username: string; password: string }> = {};
+    if (adminUsers) {
+      for (const u of adminUsers) {
+        adminCredentials[u.hospital_id] = {
+          username: u.username,
+          password: u.password,
+        };
+      }
+    }
+
     const hospitals = (licenses || []).map((l: Record<string, unknown>) => ({
       id: l.id,
       hospital_name: l.hospital_name,
@@ -87,6 +103,8 @@ export async function GET() {
       features: l.features,
       created_at: l.created_at,
       user_count: userCounts[(l.id as number)] || 0,
+      admin_username: adminCredentials[(l.id as number)]?.username || null,
+      admin_password: adminCredentials[(l.id as number)]?.password || null,
     }));
 
     return NextResponse.json({ success: true, hospitals });
@@ -100,7 +118,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { hospital_name, address, phone, license_duration, features } = body;
+    const { hospital_name, address, phone, license_duration, features, charges, notes } = body;
 
     if (!hospital_name) {
       return NextResponse.json(
@@ -134,6 +152,8 @@ export async function POST(request: NextRequest) {
         expiry_date: expiryDate,
         features: features || ['all'],
         check_frequency_days: 1,
+        charges: charges || null,
+        notes: notes || null,
       })
       .select()
       .single();
@@ -172,6 +192,8 @@ export async function POST(request: NextRequest) {
           license_duration: license.license_duration,
           expiry_date: license.expiry_date,
           status: license.status,
+          charges: license.charges,
+          notes: license.notes,
         },
         credentials: null,
       });
@@ -186,6 +208,8 @@ export async function POST(request: NextRequest) {
         license_duration: license.license_duration,
         expiry_date: license.expiry_date,
         status: license.status,
+        charges: license.charges,
+        notes: license.notes,
       },
       credentials: {
         username,

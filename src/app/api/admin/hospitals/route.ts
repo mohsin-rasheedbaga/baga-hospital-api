@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabase } from '@/lib/supabase';
+import { verifyAdminAuth } from '@/lib/auth';
 
 // Generate license key: BAGA-XXXXX-XXXXX
 function generateLicenseKey(): string {
@@ -71,7 +72,10 @@ function getLicenseTypeFromFeatures(features: string[]): string {
 }
 
 // GET /api/admin/hospitals - List all hospitals with licenses
-export async function GET() {
+export async function GET(request: NextRequest) {
+  if (!verifyAdminAuth(request)) {
+    return NextResponse.json({ success: false, error: 'Unauthorized. Please log in as admin.' }, { status: 401 });
+  }
   try {
     const supabase = getSupabase();
 
@@ -138,6 +142,9 @@ export async function GET() {
 
 // POST /api/admin/hospitals - Create new hospital with license
 export async function POST(request: NextRequest) {
+  if (!verifyAdminAuth(request)) {
+    return NextResponse.json({ success: false, error: 'Unauthorized. Please log in as admin.' }, { status: 401 });
+  }
   try {
     const body = await request.json();
     const { hospital_name, address, phone, license_duration, features, charges, notes, license_type } = body;

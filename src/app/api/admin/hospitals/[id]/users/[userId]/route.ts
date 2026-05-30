@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabase } from '@/lib/supabase';
+import { verifyAdminAuth } from '@/lib/auth';
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; userId: string }> }
 ) {
+  if (!verifyAdminAuth(request)) {
+    return NextResponse.json({ success: false, error: 'Unauthorized. Please log in as admin.' }, { status: 401 });
+  }
   try {
     const { userId } = await params;
     const body = await request.json();
@@ -42,6 +46,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; userId: string }> }
 ) {
+  if (!verifyAdminAuth(request)) {
+    return NextResponse.json({ success: false, error: 'Unauthorized. Please log in as admin.' }, { status: 401 });
+  }
   try {
     const { userId } = await params;
     const supabase = getSupabase();

@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabase } from '@/lib/supabase';
+import { verifyAdminAuth } from '@/lib/auth';
 
 // GET /api/admin/hospitals/[id]/users - List users for a hospital
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!verifyAdminAuth(request)) {
+    return NextResponse.json({ success: false, error: 'Unauthorized. Please log in as admin.' }, { status: 401 });
+  }
   try {
     const { id } = await params;
     const supabase = getSupabase();
@@ -32,6 +36,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!verifyAdminAuth(request)) {
+    return NextResponse.json({ success: false, error: 'Unauthorized. Please log in as admin.' }, { status: 401 });
+  }
   try {
     const { id } = await params;
     const body = await request.json();
@@ -84,17 +91,18 @@ export async function POST(
       );
     }
 
-    // Check for duplicate username
+    // Check for duplicate username within the same hospital
     const { data: existingUser } = await supabase
       .from('hospital_users')
       .select('id')
-      .eq('username', username)
+      .eq('username', username.trim())
+      .eq('hospital_id', parseInt(id))
       .eq('is_active', true)
       .single();
 
     if (existingUser) {
       return NextResponse.json(
-        { success: false, error: 'Username already exists' },
+        { success: false, error: `Username "${username}" already exists in this hospital` },
         { status: 409 }
       );
     }

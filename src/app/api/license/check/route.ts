@@ -67,7 +67,6 @@ export async function POST(request: NextRequest) {
       address: license.address,
       phone: license.phone,
       username: adminUser?.username || null,
-      password: adminUser?.password || null,
     });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Internal server error';

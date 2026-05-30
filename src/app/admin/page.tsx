@@ -62,6 +62,12 @@ function getTypeFromFeatures(features: string[]): string {
 }
 
 export default function AdminPage() {
+  // Helper to get auth headers for API calls
+  function authHeaders(): Record<string, string> {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('baga_admin_token') : null;
+    return token ? { 'Authorization': `Bearer ${token}`, 'X-Admin-Token': token } : {};
+  }
+
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -134,7 +140,7 @@ export default function AdminPage() {
 
   async function fetchHospitals() {
     try {
-      const res = await fetch('/api/admin/hospitals');
+      const res = await fetch('/api/admin/hospitals', { headers: authHeaders() });
       const data = await res.json();
       if (data.success) {
         setHospitals(data.hospitals);
@@ -217,7 +223,7 @@ export default function AdminPage() {
     try {
       const res = await fetch('/api/admin/hospitals', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(formData),
       });
 
@@ -255,7 +261,7 @@ export default function AdminPage() {
       const newStatus = hospital.status === 'active' ? 'inactive' : 'active';
       const res = await fetch(`/api/admin/hospitals/${hospital.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ status: newStatus }),
       });
 
@@ -280,7 +286,7 @@ export default function AdminPage() {
     try {
       const res = await fetch(`/api/admin/hospitals/${hospital.id}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ action: 'regenerate_license' }),
       });
 
@@ -305,6 +311,7 @@ export default function AdminPage() {
     try {
       const res = await fetch(`/api/admin/hospitals/${hospital.id}`, {
         method: 'DELETE',
+        headers: authHeaders(),
       });
 
       const data = await res.json();
@@ -328,7 +335,7 @@ export default function AdminPage() {
     setSelectedHospital(hospital);
     setShowAddUserForm(false);
     try {
-      const res = await fetch(`/api/admin/hospitals/${hospital.id}/users`);
+      const res = await fetch(`/api/admin/hospitals/${hospital.id}/users`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) {
         setHospitalUsers(data.users);
@@ -346,7 +353,7 @@ export default function AdminPage() {
     try {
       const res = await fetch(`/api/admin/hospitals/${selectedHospital.id}/users`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(userForm),
       });
 
@@ -359,7 +366,7 @@ export default function AdminPage() {
           : 'reception';
         setUserForm({ username: '', password: '', full_name: '', role: defaultRole });
         // Refresh users
-        const usersRes = await fetch(`/api/admin/hospitals/${selectedHospital.id}/users`);
+        const usersRes = await fetch(`/api/admin/hospitals/${selectedHospital.id}/users`, { headers: authHeaders() });
         const usersData = await usersRes.json();
         if (usersData.success) setHospitalUsers(usersData.users);
         fetchHospitals();
@@ -378,14 +385,14 @@ export default function AdminPage() {
     try {
       const res = await fetch(`/api/admin/hospitals/${selectedHospital!.id}/users/${user.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ is_active: !user.is_active }),
       });
 
       const data = await res.json();
       if (data.success) {
         showToast(`User ${user.is_active ? 'deactivated' : 'activated'}`, 'success');
-        const usersRes = await fetch(`/api/admin/hospitals/${selectedHospital!.id}/users`);
+        const usersRes = await fetch(`/api/admin/hospitals/${selectedHospital!.id}/users`, { headers: authHeaders() });
         const usersData = await usersRes.json();
         if (usersData.success) setHospitalUsers(usersData.users);
       }

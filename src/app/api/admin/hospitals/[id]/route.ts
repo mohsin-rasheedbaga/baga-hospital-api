@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabase } from '@/lib/supabase';
+import { verifyAdminAuth } from '@/lib/auth';
 
 // Generate license key: BAGA-XXXXX-XXXXX
 function generateLicenseKey(): string {
@@ -32,6 +33,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!verifyAdminAuth(request)) {
+    return NextResponse.json({ success: false, error: 'Unauthorized. Please log in as admin.' }, { status: 401 });
+  }
   try {
     const { id } = await params;
     const supabase = getSupabase();
@@ -68,6 +72,9 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!verifyAdminAuth(request)) {
+    return NextResponse.json({ success: false, error: 'Unauthorized. Please log in as admin.' }, { status: 401 });
+  }
   try {
     const { id } = await params;
     const body = await request.json();
@@ -114,6 +121,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!verifyAdminAuth(request)) {
+    return NextResponse.json({ success: false, error: 'Unauthorized. Please log in as admin.' }, { status: 401 });
+  }
   try {
     const { id } = await params;
     const supabase = getSupabase();
@@ -149,6 +159,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!verifyAdminAuth(request)) {
+    return NextResponse.json({ success: false, error: 'Unauthorized. Please log in as admin.' }, { status: 401 });
+  }
   try {
     const { id } = await params;
     const body = await request.json();

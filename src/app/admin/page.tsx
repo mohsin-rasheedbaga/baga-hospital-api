@@ -410,6 +410,32 @@ export default function AdminPage() {
     }
   }
 
+  async function handleDeleteUser(user: User) {
+    if (!confirm(`Are you sure you want to permanently delete user "${user.full_name}" (${user.username})?\n\nThis action cannot be undone.`)) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/admin/hospitals/${selectedHospital!.id}/users/${user.id}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        showToast(`User "${user.username}" deleted permanently`, 'success');
+        const usersRes = await fetch(`/api/admin/hospitals/${selectedHospital!.id}/users`, { headers: authHeaders() });
+        const usersData = await usersRes.json();
+        if (usersData.success) setHospitalUsers(usersData.users);
+        fetchHospitals(); // Refresh hospital user count
+      } else {
+        showToast(data.error || 'Failed to delete user', 'error');
+      }
+    } catch {
+      showToast('Network error', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
   function handleLogout() {
     localStorage.removeItem('baga_admin_token');
     window.location.reload();
@@ -1609,21 +1635,38 @@ export default function AdminPage() {
                           {new Date(user.created_at).toLocaleDateString()}
                         </td>
                         <td style={{ padding: '10px 12px' }}>
-                          <button
-                            onClick={() => handleToggleUser(user)}
-                            style={{
-                              padding: '4px 10px',
-                              background: user.is_active ? '#fef2f2' : '#ecfdf5',
-                              border: 'none',
-                              borderRadius: 4,
-                              color: user.is_active ? '#dc2626' : '#059669',
-                              fontSize: 12,
-                              fontWeight: 500,
-                              cursor: 'pointer',
-                            }}
-                          >
-                            {user.is_active ? 'Deactivate' : 'Activate'}
-                          </button>
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            <button
+                              onClick={() => handleToggleUser(user)}
+                              style={{
+                                padding: '4px 10px',
+                                background: user.is_active ? '#fef2f2' : '#ecfdf5',
+                                border: 'none',
+                                borderRadius: 4,
+                                color: user.is_active ? '#dc2626' : '#059669',
+                                fontSize: 12,
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {user.is_active ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUser(user)}
+                              style={{
+                                padding: '4px 10px',
+                                background: '#fef2f2',
+                                border: '1px solid #fecaca',
+                                borderRadius: 4,
+                                color: '#dc2626',
+                                fontSize: 12,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

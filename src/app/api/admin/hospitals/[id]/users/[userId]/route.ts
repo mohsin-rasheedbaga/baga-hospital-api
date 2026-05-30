@@ -55,17 +55,17 @@ export async function DELETE(
 
     const { error } = await supabase
       .from('hospital_users')
-      .update({ is_active: false })
+      .delete()
       .eq('id', userId);
 
     if (error) {
       return NextResponse.json(
-        { success: false, error: 'Failed to deactivate user' },
+        { success: false, error: 'Failed to delete user: ' + error.message },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ success: true, message: 'User deactivated' });
+    return NextResponse.json({ success: true, message: 'User deleted permanently' });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json({ success: false, error: msg }, { status: 500 });

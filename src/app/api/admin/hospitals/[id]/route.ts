@@ -128,26 +128,26 @@ export async function DELETE(
     const { id } = await params;
     const supabase = getSupabase();
 
-    // Deactivate license instead of deleting
-    const { error } = await supabase
-      .from('licenses')
-      .update({ status: 'inactive' })
-      .eq('id', id);
-
-    // Deactivate all users for this hospital
+    // First delete all users for this hospital
     await supabase
       .from('hospital_users')
-      .update({ is_active: false })
+      .delete()
       .eq('hospital_id', id);
+
+    // Then delete the hospital license
+    const { error } = await supabase
+      .from('licenses')
+      .delete()
+      .eq('id', id);
 
     if (error) {
       return NextResponse.json(
-        { success: false, error: 'Failed to deactivate hospital' },
+        { success: false, error: 'Failed to delete hospital: ' + error.message },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ success: true, message: 'Hospital deactivated successfully' });
+    return NextResponse.json({ success: true, message: 'Hospital deleted permanently' });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json({ success: false, error: msg }, { status: 500 });

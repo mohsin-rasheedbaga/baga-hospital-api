@@ -312,7 +312,7 @@ export default function AdminPage() {
   }
 
   async function handleDeleteHospital(hospital: Hospital) {
-    if (!confirm(`Are you sure you want to deactivate "${hospital.hospital_name}"?\n\nThis will deactivate all associated users.`)) return;
+    if (!confirm(`Are you sure you want to PERMANENTLY DELETE "${hospital.hospital_name}"?\n\nThis will delete the hospital, its license, and ALL associated users.\nThis action CANNOT be undone!`)) return;
     setActionLoading(true);
 
     try {
@@ -323,13 +323,14 @@ export default function AdminPage() {
 
       const data = await res.json();
       if (data.success) {
-        showToast('Hospital deactivated', 'success');
+        showToast(`"${hospital.hospital_name}" deleted permanently`, 'success');
         if (selectedHospital?.id === hospital.id) {
           setSelectedHospital(null);
+          setHospitalUsers([]);
         }
         fetchHospitals();
       } else {
-        showToast(data.error || 'Failed to deactivate', 'error');
+        showToast(data.error || 'Failed to delete hospital', 'error');
       }
     } catch {
       showToast('Network error', 'error');

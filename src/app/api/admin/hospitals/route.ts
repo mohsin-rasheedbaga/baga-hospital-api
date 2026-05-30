@@ -184,8 +184,6 @@ export async function POST(request: NextRequest) {
         expiry_date: expiryDate,
         features: resolvedFeatures,
         check_frequency_days: 1,
-        charges: charges || null,
-        notes: notes || null,
       })
       .select()
       .single();
@@ -224,8 +222,8 @@ export async function POST(request: NextRequest) {
           license_duration: license.license_duration,
           expiry_date: license.expiry_date,
           status: license.status,
-          charges: license.charges,
-          notes: license.notes,
+          charges: charges || null,
+          notes: notes || null,
           license_type: resolvedLicenseType,
         },
         credentials: null,
@@ -266,8 +264,8 @@ export async function POST(request: NextRequest) {
         license_duration: license.license_duration,
         expiry_date: license.expiry_date,
         status: license.status,
-        charges: license.charges,
-        notes: license.notes,
+        charges: charges || null,
+        notes: notes || null,
         license_type: resolvedLicenseType,
       },
       credentials: {

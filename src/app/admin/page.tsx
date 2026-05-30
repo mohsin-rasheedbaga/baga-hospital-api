@@ -141,6 +141,13 @@ export default function AdminPage() {
   async function fetchHospitals() {
     try {
       const res = await fetch('/api/admin/hospitals', { headers: authHeaders() });
+      // If unauthorized, redirect to login
+      if (res.status === 401) {
+        localStorage.removeItem('baga_admin_token');
+        localStorage.removeItem('baga_admin_remember');
+        window.location.reload();
+        return;
+      }
       const data = await res.json();
       if (data.success) {
         setHospitals(data.hospitals);

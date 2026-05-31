@@ -171,26 +171,25 @@ export async function POST(request: NextRequest) {
     const username = generateUsername(hospital_name);
     const password = generatePassword(hospital_name);
 
-    // Create license (include all NOT NULL fields: name, hospital_name, license_key, username, password)
+    // Create license (include only columns that exist in the schema)
+    const insertData: Record<string, unknown> = {
+      name: hospital_name.trim(),
+      hospital_name: hospital_name.trim(),
+      address: (address || '').trim(),
+      phone: (phone || '').trim(),
+      license_key: licenseKey,
+      username: username,
+      password: password,
+      status: 'active',
+      license_duration: duration,
+      expiry_date: expiryDate,
+      features: resolvedFeatures,
+      check_frequency_days: 1,
+    };
+
     const { data: license, error: licenseError } = await supabase
       .from('licenses')
-      .insert({
-        name: hospital_name.trim(),
-        hospital_name: hospital_name.trim(),
-        address: (address || '').trim(),
-        phone: (phone || '').trim(),
-        email: (email || '').trim() || null,
-        mobile: (mobile || '').trim() || null,
-        logo_url: (logo_url || '').trim() || null,
-        license_key: licenseKey,
-        username: username,
-        password: password,
-        status: 'active',
-        license_duration: duration,
-        expiry_date: expiryDate,
-        features: resolvedFeatures,
-        check_frequency_days: 1,
-      })
+      .insert(insertData)
       .select()
       .single();
 
@@ -199,6 +198,19 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Failed to create license: ' + (licenseError?.message || 'Unknown error') },
         { status: 500 }
       );
+    }
+
+    // Try to update with extra fields (email, mobile, logo_url) if columns exist
+    try {
+      const extraFields: Record<string, string | null> = {};
+      if (email) extraFields.email = email.trim();
+      if (mobile) extraFields.mobile = mobile.trim();
+      if (logo_url) extraFields.logo_url = logo_url.trim();
+      if (Object.keys(extraFields).length > 0) {
+        await supabase.from('licenses').update(extraFields).eq('id', license.id);
+      }
+    } catch (updateErr) {
+      console.log('Extra fields update skipped (columns may not exist):', updateErr);
     }
 
     // Create admin user for this hospital

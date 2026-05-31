@@ -121,6 +121,9 @@ export async function GET(request: NextRequest) {
       hospital_name: l.hospital_name,
       address: l.address,
       phone: l.phone,
+      email: l.email || null,
+      mobile: l.mobile || null,
+      logo_url: l.logo_url || null,
       license_key: l.license_key,
       status: l.status,
       license_duration: l.license_duration,
@@ -147,7 +150,7 @@ export async function POST(request: NextRequest) {
   }
   try {
     const body = await request.json();
-    const { hospital_name, address, phone, license_duration, features, charges, notes, license_type } = body;
+    const { hospital_name, address, phone, email, mobile, logo_url, license_duration, features, charges, notes, license_type } = body;
 
     if (!hospital_name) {
       return NextResponse.json(
@@ -176,6 +179,9 @@ export async function POST(request: NextRequest) {
         hospital_name: hospital_name.trim(),
         address: (address || '').trim(),
         phone: (phone || '').trim(),
+        email: (email || '').trim() || null,
+        mobile: (mobile || '').trim() || null,
+        logo_url: (logo_url || '').trim() || null,
         license_key: licenseKey,
         username: username,
         password: password,

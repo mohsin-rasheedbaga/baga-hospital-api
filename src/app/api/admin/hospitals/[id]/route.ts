@@ -84,6 +84,9 @@ export async function PUT(
     if (body.hospital_name !== undefined) updateData.hospital_name = body.hospital_name.trim();
     if (body.address !== undefined) updateData.address = body.address.trim();
     if (body.phone !== undefined) updateData.phone = body.phone.trim();
+    if (body.email !== undefined) updateData.email = (body.email || '').trim() || null;
+    if (body.mobile !== undefined) updateData.mobile = (body.mobile || '').trim() || null;
+    if (body.logo_url !== undefined) updateData.logo_url = (body.logo_url || '').trim() || null;
     if (body.status !== undefined) updateData.status = body.status;
     if (body.features !== undefined) updateData.features = body.features;
 

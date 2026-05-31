@@ -66,6 +66,9 @@ export async function POST(request: NextRequest) {
       check_frequency_days: license.check_frequency_days,
       address: license.address,
       phone: license.phone,
+      email: license.email || null,
+      mobile: license.mobile || null,
+      logo_url: license.logo_url || null,
       username: adminUser?.username || null,
     });
   } catch (error: unknown) {

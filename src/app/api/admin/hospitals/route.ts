@@ -30,24 +30,30 @@ function calculateExpiry(duration: string): string | null {
   return now.toISOString().split('T')[0];
 }
 
-// Generate username from hospital name
+// Generate username from hospital/pharmacy FIRST NAME + 3 random digits
+// Example: "Baga Pharmacy" → "baga123", "Asad Medical Store" → "asad456"
 function generateUsername(hospitalName: string): string {
-  const prefix = hospitalName
+  // Get the first word of the hospital/pharmacy name
+  const firstName = hospitalName
+    .trim()
+    .split(/\s+/)[0] // first word only
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, '')
-    .substring(0, 12);
+    .replace(/[^a-z0-9]/g, ''); // remove non-alphanumeric
+  // 3 random digits (100-999)
   const digits = Math.floor(100 + Math.random() * 900);
-  return `${prefix}${digits}`;
+  return `${firstName}${digits}`;
 }
 
-// Generate password from hospital name
+// Generate password (random, can be changed later by user)
 function generatePassword(hospitalName: string): string {
-  const prefix = hospitalName
+  // Use first name + 4 random digits
+  const firstName = hospitalName
+    .trim()
+    .split(/\s+/)[0]
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, '')
-    .substring(0, 8);
+    .replace(/[^a-z0-9]/g, '');
   const digits = Math.floor(1000 + Math.random() * 9000);
-  return `${prefix}${digits}`;
+  return `${firstName}${digits}`;
 }
 
 // Map license_type to features array

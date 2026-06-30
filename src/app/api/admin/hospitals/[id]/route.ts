@@ -214,9 +214,89 @@ export async function POST(
       });
     }
 
+    // NEW: Renew license — extends expiry without changing license key, login ID, or password
+    // The license key stays the same, users stay the same, passwords stay the same.
+    // Only the expiry date and duration are updated.
+    if (body.action === 'renew_license') {
+      const duration = body.duration || '1_month';
+
+      // Get current license to preserve key and user info
+      const { data: currentLicense } = await supabase
+        .from('licenses')
+        .select('license_key, license_duration, expiry_date, status')
+        .eq('id', id)
+        .single();
+
+      if (!currentLicense) {
+        return NextResponse.json(
+          { success: false, error: 'License not found' },
+          { status: 404 }
+        );
+      }
+
+      // Calculate new expiry date based on selected duration
+      // If license is currently expired or about to expire, start from today
+      // Otherwise, extend from current expiry date
+      const now = new Date();
+      let baseDate = now;
+      if (currentLicense.expiry_date && currentLicense.status === 'active') {
+        const currentExpiry = new Date(currentLicense.expiry_date);
+        if (currentExpiry > now) {
+          baseDate = currentExpiry; // extend from current expiry
+        }
+      }
+
+      const newExpiryDate = calculateExpiryFromDate(baseDate, duration);
+
+      const { data: license, error } = await supabase
+        .from('licenses')
+        .update({
+          status: 'active',
+          license_duration: duration,
+          expiry_date: newExpiryDate,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error || !license) {
+        return NextResponse.json(
+          { success: false, error: 'Failed to renew license' },
+          { status: 500 }
+        );
+      }
+
+      // Note: license_key, username, password are NOT changed
+      // Users keep their existing credentials
+
+      return NextResponse.json({
+        success: true,
+        license_key: license.license_key, // same key
+        expiry_date: license.expiry_date,
+        license_duration: license.license_duration,
+        status: license.status,
+        message: `License renewed successfully for ${duration}. Expiry: ${license.expiry_date}`,
+      });
+    }
+
     return NextResponse.json({ success: false, error: 'Unknown action' }, { status: 400 });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
+}
+
+// Helper: calculate expiry date from a specific base date
+function calculateExpiryFromDate(baseDate: Date, duration: string): string | null {
+  if (duration === 'lifetime') return null;
+  const date = new Date(baseDate);
+  const months: Record<string, number> = {
+    '1_month': 1,
+    '3_months': 3,
+    '6_months': 6,
+    '1_year': 12,
+  };
+  const m = months[duration] || 1;
+  date.setMonth(date.getMonth() + m);
+  return date.toISOString().split('T')[0];
 }

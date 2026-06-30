@@ -405,6 +405,33 @@ export default function AdminPage() {
     }
   }
 
+  // NEW: Renew license — extends expiry without changing license key or credentials
+  async function handleRenewLicense(hospital: Hospital, duration: string) {
+    if (!confirm(`Renew license for "${hospital.hospital_name}"?\n\nDuration: ${duration}\n\nThe license key, login ID, and password will remain the same. Only the expiry date will be extended.`)) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/admin/hospitals/${hospital.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ action: 'renew_license', duration }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`✅ License renewed! New expiry: ${data.expiry_date}`, 'success');
+        fetchHospitals();
+      } else {
+        showToast(data.error || 'Failed to renew license', 'error');
+      }
+    } catch {
+      showToast('Network error', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  // Show renew duration selector
+  const [renewHospital, setRenewHospital] = useState<Hospital | null>(null);
+
   async function handleDeleteHospital(hospital: Hospital) {
     if (!confirm(`Are you sure you want to PERMANENTLY DELETE "${hospital.hospital_name}"?\n\nThis will delete the hospital, its license, and ALL associated users.\nThis action CANNOT be undone!`)) return;
     setActionLoading(true);
@@ -1164,10 +1191,10 @@ export default function AdminPage() {
                 color: selectedHospital.status === 'active' ? '#dc2626' : '#059669',
                 fontSize: 13, fontWeight: 600, cursor: 'pointer',
               }}>{selectedHospital.status === 'active' ? '⏸ Deactivate' : '▶ Activate'}</button>
-              <button onClick={() => handleRegenerateLicense(selectedHospital)} style={{
-                padding: '9px 18px', background: '#eff6ff', border: 'none', borderRadius: 10,
-                color: '#2563eb', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-              }}>🔄 Regenerate License</button>
+              <button onClick={() => setRenewHospital(selectedHospital)} style={{
+                padding: '9px 18px', background: '#ecfdf5', border: 'none', borderRadius: 10,
+                color: '#059669', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              }}>🔄 Renew License</button>
               <button onClick={() => { if (confirm('Delete permanently?')) handleDeleteHospital(selectedHospital); }} style={{
                 padding: '9px 18px', background: '#fef2f2', border: 'none', borderRadius: 10,
                 color: '#dc2626', fontSize: 13, fontWeight: 600, cursor: 'pointer',
@@ -1404,10 +1431,10 @@ export default function AdminPage() {
                         background: hospital.status === 'active' ? '#fef2f2' : '#ecfdf5',
                         color: hospital.status === 'active' ? '#dc2626' : '#059669',
                       }}>{hospital.status === 'active' ? 'Deactivate' : 'Activate'}</button>
-                      <button onClick={() => handleRegenerateLicense(hospital)} style={{
-                        padding: '6px 12px', background: '#eff6ff', border: 'none', borderRadius: 8,
-                        color: '#2563eb', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                      }}>Regenerate</button>
+                      <button onClick={() => setRenewHospital(hospital)} style={{
+                        padding: '6px 12px', background: '#ecfdf5', border: 'none', borderRadius: 8,
+                        color: '#059669', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                      }}>Renew</button>
                       <button onClick={() => { if (confirm('Delete permanently?')) handleDeleteHospital(hospital); }} style={{
                         padding: '6px 12px', background: '#fef2f2', border: 'none', borderRadius: 8,
                         color: '#dc2626', fontSize: 12, fontWeight: 600, cursor: 'pointer',
@@ -1420,6 +1447,71 @@ export default function AdminPage() {
           </div>
         )}
       </div>
+
+      {/* Renew License Modal — select duration */}
+      {renewHospital && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+        }} onClick={() => setRenewHospital(null)}>
+          <div style={{
+            background: 'white', borderRadius: 14, padding: 24,
+            maxWidth: 420, width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+          }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>
+              Renew License
+            </h3>
+            <p style={{ fontSize: 14, color: '#475569', marginBottom: 16 }}>
+              Hospital: <strong>{renewHospital.hospital_name}</strong><br/>
+              License Key: <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: 4 }}>{renewHospital.license_key}</code>
+            </p>
+            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 16 }}>
+              The license key, login ID, and password will remain the same. Only the expiry date will be extended.
+            </p>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
+              Select Duration:
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
+              {[
+                { value: '1_month', label: '1 Month' },
+                { value: '3_months', label: '3 Months' },
+                { value: '6_months', label: '6 Months' },
+                { value: '1_year', label: '1 Year' },
+                { value: 'lifetime', label: 'Lifetime' },
+              ].map(d => (
+                <button
+                  key={d.value}
+                  onClick={() => {
+                    handleRenewLicense(renewHospital, d.value);
+                    setRenewHospital(null);
+                  }}
+                  disabled={actionLoading}
+                  style={{
+                    padding: '12px 16px', background: '#059669', border: 'none', borderRadius: 10,
+                    color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                    transition: 'background 0.2s',
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.background = '#047857'}
+                  onMouseOut={(e) => e.currentTarget.style.background = '#059669'}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setRenewHospital(null)}
+              style={{
+                width: '100%', padding: '10px', background: '#f8fafc',
+                border: '1.5px solid #e2e8f0', borderRadius: 10,
+                color: '#475569', fontSize: 14, fontWeight: 500, cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

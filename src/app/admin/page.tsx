@@ -1144,6 +1144,22 @@ export default function AdminPage() {
                     <CopyBtn text={selectedHospital.license_key} field={`detail-license-${selectedHospital.id}`} />
                   </div>
                 )},
+                { label: 'Activated Machine', value: (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {(selectedHospital as any).activated_machine_id ? (
+                      <>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: '#059669', fontFamily: 'monospace' }}>
+                          ✅ {(selectedHospital as any).activated_machine_id.substring(0, 16)}...
+                        </span>
+                        <span style={{ fontSize: 11, color: '#64748b' }}>
+                          Activated: {(selectedHospital as any).activated_at ? new Date((selectedHospital as any).activated_at).toLocaleString() : 'N/A'}
+                        </span>
+                      </>
+                    ) : (
+                      <span style={{ fontSize: 13, color: '#64748b' }}>Not activated yet</span>
+                    )}
+                  </div>
+                )},
                 { label: 'License Type', value: (() => {
                   const t = selectedHospital.license_type || getTypeFromFeatures(selectedHospital.features);
                   const c = LICENSE_TYPE_CONFIG[t] || LICENSE_TYPE_CONFIG.hospital;

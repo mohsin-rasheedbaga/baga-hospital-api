@@ -137,6 +137,8 @@ export async function GET(request: NextRequest) {
       features: l.features,
       license_type: getLicenseTypeFromFeatures(l.features as string[]),
       created_at: l.created_at,
+      activated_machine_id: l.activated_machine_id || null,
+      activated_at: l.activated_at || null,
       user_count: userCounts[(l.id as number)] || 0,
       admin_username: adminCredentials[(l.id as number)]?.username || null,
       admin_password: adminCredentials[(l.id as number)]?.password || null,

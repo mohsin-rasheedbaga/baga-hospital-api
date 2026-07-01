@@ -4,7 +4,7 @@ import { getSupabase } from '@/lib/supabase';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { license_key } = body;
+    const { license_key, machine_id } = body;
 
     if (!license_key) {
       return NextResponse.json({ valid: false, error: 'License key is required' }, { status: 400 });
@@ -47,6 +47,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // MACHINE ID CHECK — prevent activation on multiple computers
+    // If license already has an activated_machine_id, check if it matches
+    if (license.activated_machine_id && machine_id) {
+      if (license.activated_machine_id !== machine_id) {
+        // License is already activated on a different machine
+        return NextResponse.json({
+          valid: false,
+          error: `This license is already activated on another computer (ID: ${license.activated_machine_id.substring(0, 8)}...). Each license can only be used on one computer. Please contact support to transfer the license.`,
+          already_activated: true,
+          activated_machine_id: license.activated_machine_id,
+        }, { status: 403 });
+      }
+    }
+
+    // If no machine_id is set yet, save the current one
+    if (!license.activated_machine_id && machine_id) {
+      await supabase
+        .from('licenses')
+        .update({
+          activated_machine_id: machine_id,
+          activated_at: new Date().toISOString(),
+        })
+        .eq('id', license.id);
+      console.log(`[License] Machine ID saved for license ${license_key.substring(0, 10)}...: ${machine_id}`);
+    }
+
     // Fetch admin user credentials for this hospital
     const { data: adminUser } = await supabase
       .from('hospital_users')
@@ -70,6 +96,7 @@ export async function POST(request: NextRequest) {
       mobile: license.mobile || null,
       logo_url: license.logo_url || null,
       username: adminUser?.username || null,
+      activated_machine_id: license.activated_machine_id || machine_id || null,
     });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Internal server error';
